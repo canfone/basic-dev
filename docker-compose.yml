@@ -1,0 +1,75 @@
+version: '3'
+
+networks:
+  default:
+    driver: bridge
+
+services:
+
+  workspace:
+    image: canfone/workspace:latest
+    tty: true
+    volumes:
+      - ${APP_CODE_PATH_HOST}:${APP_CODE_PATH_CONTAINER}
+    extra_hosts:
+      - "dockerhost:${DOCKER_HOST_IP}"
+    ports:
+      - "${WORKSPACE_SSH_PORT}:22"
+    networks:
+      - default
+
+  php-fpm:
+    image: canfone/php-fpm:latest
+    expose:
+      - "9000"
+    volumes:
+      - ${PHP_FPM_CUSTOM_INI_PATH}:/usr/local/etc/php/conf.d
+      - ${APP_CODE_PATH_HOST}:${APP_CODE_PATH_CONTAINER}
+    extra_hosts:
+      - "dockerhost:${DOCKER_HOST_IP}"
+    depends_on:
+      - workspace
+    networks:
+      - default
+    links:
+      - docker-in-docker
+
+  nginx:
+    image: canfone/nginx:latest
+    volumes:
+      - ${APP_CODE_PATH_HOST}:${APP_CODE_PATH_CONTAINER}
+      - ${NGINX_HOST_LOG_PATH}:/var/log/nginx
+      - ${NGINX_SITES_PATH}:/etc/nginx/sites-available
+      - ${NGINX_SSL_PATH}:/etc/nginx/ssl
+    ports:
+      - "80:80"
+      - "443:443"
+    depends_on:
+      - php-fpm
+    networks:
+      - default
+
+  mysql:
+    image: canfone/mysql:latest
+    environment:
+      - MYSQL_DATABASE=${MYSQL_DATABASE}
+      - MYSQL_USER=${MYSQL_USER}
+      - MYSQL_PASSWORD=${MYSQL_PASSWORD}
+      - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD}
+    volumes:
+      - ${DATA_PATH_HOST}/mysql:/var/lib/mysql
+      - ${MYSQL_ENTRYPOINT_INITDB}:/docker-entrypoint-initdb.d
+    ports:
+      - "${MYSQL_PORT}:3306"
+    networks:
+      - default
+
+  docker-in-docker:
+    image: docker:dind
+    privileged: true
+    volumes:
+      - ${APP_CODE_PATH_HOST}:${APP_CODE_PATH_CONTAINER}
+    expose:
+      - 2375
+    networks:
+      - default
