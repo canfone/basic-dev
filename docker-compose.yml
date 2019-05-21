@@ -3,7 +3,7 @@ version: '3'
 networks:
   default:
     driver: bridge
-
+    
 services:
 
   html:
@@ -38,7 +38,9 @@ services:
       - html
       - wtsl
     networks:
-      - default
+      default:
+        aliases:
+          - "dev.whattokyosolong.com"
 
   nginx:
     image: canfone/nginx:latest
@@ -54,7 +56,10 @@ services:
     depends_on:
       - php-fpm
     networks:
-      - default
+      default:
+        aliases:
+          - "dev.whattokyosolong.com"
+        
 
   mysql:
     image: canfone/mysql:latest
