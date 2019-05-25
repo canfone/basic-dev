@@ -13,7 +13,7 @@ services:
     networks:
       - default
     volumes:
-      - html-volume:/var/www/html
+      - html-app:/var/www/html
       
   wtsl:
     image: canfone/wordpress:latest
@@ -22,7 +22,7 @@ services:
     networks:
       - default
     volumes:
-      - wtsl-volume:/var/www/wordpress
+      - wtsl-app:/var/www/wordpress
 
   php-fpm:
     image: canfone/php-fpm:latest
@@ -30,8 +30,8 @@ services:
       - "9000"
     volumes:
       - ${PHP_FPM_CUSTOM_INI_PATH}:/usr/local/etc/php/conf.d/custom.ini
-      - html-volume:/var/www/html
-      - wtsl-volume:/var/www/wtsl
+      - html-app:/var/www/html
+      - wtsl-app:/var/www/wtsl
     extra_hosts:
       - "dockerhost:${DOCKER_HOST_IP}"
     depends_on:
@@ -48,8 +48,8 @@ services:
       - ${NGINX_HOST_LOG_PATH}:/var/log/nginx
       - ${NGINX_SITES_PATH}:/etc/nginx/sites-available
       - ${NGINX_SSL_PATH}:/etc/nginx/ssl
-      - html-volume:/var/www/html
-      - wtsl-volume:/var/www/wtsl
+      - html-app:/var/www/html
+      - wtsl-app:/var/www/wtsl
     ports:
       - "80:80"
       - "443:443"
@@ -60,7 +60,17 @@ services:
         aliases:
           - "dev.whattokyosolong.com"
         
-
+  letsencrypt:
+    image: certbot/certbot
+    volumes:
+      - ${LETSENCRYPT_ETC_PATH}:/etc/letsencrypt
+      - ${LETSENCRYPT_LIB_PATH}:/var/lib/letsencrypt
+      - ${LETSENCRYPT_LOG_PATH}:/var/log/letsencrypt
+      - wtsl-app:/data/letsencrypt
+    depends_on:
+      - nginx
+      - wtsl
+    
   mysql:
     image: canfone/mysql:latest
     environment:
@@ -74,5 +84,7 @@ services:
       - default
 
 volumes:
-    html-volume:
-    wtsl-volume:
+    html-app:
+    wtsl-app:
+    certbot-etc:
+    certbot-var:
